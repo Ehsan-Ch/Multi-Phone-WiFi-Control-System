@@ -1,0 +1,489 @@
+================================================================================
+    MULTI-PHONE WIFI CONTROL SYSTEM - COMPLETE USER GUIDE
+================================================================================
+
+TABLE OF CONTENTS
+-----------------
+1. System Overview
+2. Prerequisites & Installation
+3. Initial Setup (First Time)
+4. Daily Usage
+5. File Descriptions
+6. Troubleshooting
+7. Advanced Features
+8. Common Commands Reference
+
+================================================================================
+1. SYSTEM OVERVIEW
+================================================================================
+
+This system allows you to:
+- Connect up to 10 phones to your PC via WiFi (no USB needed after setup)
+- View and control one phone's screen on your PC
+- Automatically mirror all actions from the master phone to all other phones
+- Execute commands on all phones simultaneously
+
+HOW IT WORKS:
+- Master Device: The phone you control directly (shown on PC screen)
+- Slave Devices: All other phones that mirror the master's actions
+- WiFi ADB: Connects phones wirelessly using Android Debug Bridge
+- scrcpy: Shows master phone screen on PC and allows control
+- Python Scripts: Handle device management and action mirroring
+
+================================================================================
+2. PREREQUISITES & INSTALLATION
+================================================================================
+
+REQUIRED SOFTWARE:
+
+1. ADB (Android Debug Bridge)
+   - Download: https://developer.android.com/studio/releases/platform-tools
+   - Extract to a folder (e.g., C:\platform-tools)
+   - Add to Windows PATH:
+     * Search "Environment Variables" in Windows
+     * Edit "Path" variable
+     * Add folder path (e.g., C:\platform-tools)
+   - Verify: Open Command Prompt, type "adb version"
+
+2. scrcpy (Screen Mirroring Tool)
+   - Download: https://github.com/Genymobile/scrcpy/releases
+   - Download the latest .exe or use: winget install scrcpy
+   - Add to PATH or place in same folder as scripts
+   - Verify: Open Command Prompt, type "scrcpy --version"
+
+3. Python 3.7 or higher
+   - Download: https://www.python.org/downloads/
+   - Make sure to check "Add Python to PATH" during installation
+   - Verify: Open Command Prompt, type "py --version"
+
+PHONE REQUIREMENTS:
+
+1. All phones must be Android devices
+2. All phones must be on the SAME WiFi network as your PC
+3. USB Debugging must be enabled on all phones:
+   - Go to Settings → About Phone
+   - Tap "Build Number" 7 times (enables Developer Options)
+   - Go to Settings → Developer Options
+   - Enable "USB Debugging"
+   - Enable "Stay Awake" (optional, but recommended)
+
+================================================================================
+3. INITIAL SETUP (FIRST TIME)
+================================================================================
+
+STEP 1: Connect Phones via USB
+-------------------------------
+1. Connect all 10 phones to your PC using USB cables
+2. On each phone, when prompted, allow USB debugging
+3. Check "Always allow from this computer" on each phone
+
+STEP 2: Verify USB Connection
+-------------------------------
+Open Command Prompt and type:
+    adb devices
+
+You should see all your phones listed like:
+    List of devices attached
+    ABC123XYZ    device
+    DEF456UVW    device
+    ... (10 devices total)
+
+If devices show as "unauthorized":
+- Unplug and replug the USB cable
+- Check the phone for USB debugging authorization prompt
+- Click "Allow" or "OK"
+
+STEP 3: Connect Phones via WiFi
+---------------------------------
+1. Make sure all phones are connected to the same WiFi network
+2. Open Command Prompt in the project folder
+3. Run:
+    py wifi_connection.py
+
+4. Follow the prompts:
+   - Press Enter when all phones are connected via USB
+   - The script will automatically:
+     * Get each phone's IP address
+     * Enable WiFi ADB on each phone
+     * Connect all phones via WiFi
+
+5. You should see output like:
+    ✓ Connected ABC123XYZ via WiFi at 192.168.1.100:5555
+    ✓ Connected DEF456UVW via WiFi at 192.168.1.101:5555
+    ... (all 10 devices)
+
+6. Once connected, you can disconnect USB cables!
+
+STEP 4: Verify WiFi Connection
+-------------------------------
+Run:
+    adb devices
+
+You should now see devices with IP addresses:
+    192.168.1.100:5555    device
+    192.168.1.101:5555    device
+    ... (all 10 devices)
+
+If a device disconnects:
+- Make sure phone is still on WiFi
+- Run: adb connect IP_ADDRESS:5555
+- Or reconnect via USB and run wifi_connection.py again
+
+================================================================================
+4. DAILY USAGE
+================================================================================
+
+METHOD 1: Using Main Script (Recommended)
+------------------------------------------
+1. Make sure all phones are on WiFi (no USB needed)
+2. Open Command Prompt in project folder
+3. Run:
+    py main.py
+
+4. The script will:
+   - Check for WiFi-connected devices
+   - If none found, guide you through WiFi setup
+   - Let you select which phone is the master
+   - Automatically set others as slaves
+   - Start screen mirroring
+   - Show master phone screen in a window
+
+5. Control the master phone window:
+   - Click/tap anywhere on the window
+   - Actions will automatically mirror to all slave phones
+   - Use keyboard for text input
+   - Swipe gestures work normally
+
+6. To stop:
+   - Press Ctrl+C in the Command Prompt
+   - Or close the scrcpy window
+
+METHOD 2: Using Batch Script
+-----------------------------
+1. First, get your device IP addresses:
+    adb devices
+
+2. Run the batch script:
+    scrcpy_mirror.bat MASTER_IP:5555 SLAVE1_IP:5555,SLAVE2_IP:5555,...
+
+   Example:
+    scrcpy_mirror.bat 192.168.1.100:5555 192.168.1.101:5555,192.168.1.102:5555
+
+METHOD 3: Manual Control
+-------------------------
+1. Start screen mirror for master:
+    scrcpy -s MASTER_IP:5555 --window-title "Master Phone"
+
+2. In another terminal, use Python to mirror actions:
+    py
+    >>> from screen_mirror_controller import ScreenMirrorController
+    >>> controller = ScreenMirrorController("192.168.1.100:5555", ["192.168.1.101:5555", "192.168.1.102:5555"])
+    >>> controller.mirror_tap(500, 1000)  # Tap at coordinates
+    >>> controller.mirror_swipe(500, 1500, 500, 500, 300)  # Swipe up
+    >>> controller.mirror_key("KEYCODE_HOME")  # Press home button
+
+================================================================================
+5. FILE DESCRIPTIONS
+================================================================================
+
+wifi_connection.py
+------------------
+Purpose: Connects phones to PC via WiFi ADB
+Usage: py wifi_connection.py
+Features:
+- Detects USB-connected phones
+- Gets each phone's WiFi IP address
+- Enables WiFi ADB on each phone
+- Connects all phones wirelessly
+- Manages master/slave device assignment
+
+phone_controller.py
+-------------------
+Purpose: Core device control functions
+Usage: Imported by other scripts
+Features:
+- Execute commands on individual or all devices
+- Tap, swipe, input text, press keys
+- Install apps, take screenshots
+- Get device information
+- Parallel execution for speed
+
+screen_mirror_controller.py
+---------------------------
+Purpose: Screen mirroring and action mirroring
+Usage: Imported by main.py
+Features:
+- Start/stop scrcpy screen mirroring
+- Mirror taps, swipes, keys, text to slaves
+- Master-slave control system
+- Real-time action synchronization
+
+main.py
+-------
+Purpose: Main entry point for the system
+Usage: py main.py
+Features:
+- Interactive setup wizard
+- Device detection and selection
+- Automatic master/slave assignment
+- Complete system startup
+- User-friendly interface
+
+input_mirror_auto.py
+--------------------
+Purpose: Automatic input mirroring (advanced)
+Usage: py input_mirror_auto.py MASTER SLAVES
+Features:
+- Monitors master device inputs
+- Automatically mirrors to slaves
+- Background operation
+
+scrcpy_mirror.bat
+-----------------
+Purpose: Quick start batch script for Windows
+Usage: scrcpy_mirror.bat MASTER SLAVES
+Features:
+- One-command startup
+- Launches scrcpy window
+- Starts input mirroring
+
+requirements.txt
+---------------
+Purpose: Python package dependencies
+Usage: pip install -r requirements.txt
+Note: Currently no required packages (uses built-in libraries)
+
+================================================================================
+6. TROUBLESHOOTING
+================================================================================
+
+PROBLEM: "adb: command not found"
+SOLUTION:
+- ADB is not in your PATH
+- Add platform-tools folder to Windows PATH
+- Or use full path: C:\platform-tools\adb.exe
+
+PROBLEM: "scrcpy: command not found"
+SOLUTION:
+- scrcpy is not installed or not in PATH
+- Download from GitHub releases
+- Add to PATH or place in project folder
+
+PROBLEM: "No devices found"
+SOLUTION:
+- Check USB connection (for initial setup)
+- Verify USB Debugging is enabled
+- Check phone for authorization prompt
+- Try: adb kill-server then adb start-server
+
+PROBLEM: "Device unauthorized"
+SOLUTION:
+- Unplug and replug USB cable
+- Check phone for "Allow USB debugging?" prompt
+- Click "Allow" and check "Always allow"
+
+PROBLEM: "Cannot connect via WiFi"
+SOLUTION:
+- Ensure phone and PC are on same WiFi network
+- Check phone's IP address: adb -s DEVICE shell ip addr show wlan0
+- Manually connect: adb connect IP:5555
+- Firewall may be blocking - check Windows Firewall
+
+PROBLEM: "WiFi connection drops"
+SOLUTION:
+- Keep phones on and WiFi active
+- Reconnect: adb connect IP:5555
+- Or reconnect via USB and run wifi_connection.py again
+
+PROBLEM: "Actions not mirroring to slaves"
+SOLUTION:
+- Verify slaves are connected: adb devices
+- Check master device is correct
+- Try manual mirror: controller.mirror_tap(x, y)
+- Restart the system: py main.py
+
+PROBLEM: "scrcpy window doesn't appear"
+SOLUTION:
+- Check scrcpy is installed correctly
+- Verify master device is connected
+- Try manually: scrcpy -s DEVICE_IP:5555
+- Check for error messages in terminal
+
+PROBLEM: "Screen is black or frozen"
+SOLUTION:
+- Phone screen may be locked - unlock it
+- Try: adb -s DEVICE shell input keyevent KEYCODE_WAKEUP
+- Restart scrcpy
+- Check phone battery and WiFi connection
+
+================================================================================
+7. ADVANCED FEATURES
+================================================================================
+
+CUSTOM AUTOMATION TASKS
+------------------------
+Create your own automation script:
+
+    from phone_controller import PhoneController
+    import time
+    
+    controller = PhoneController()
+    
+    # Example: Open an app on all phones
+    controller.launch_app_all(
+        'com.android.chrome',
+        'com.google.android.apps.chrome.Main'
+    )
+    
+    time.sleep(3)
+    
+    # Example: Tap sequence
+    controller.tap_all(500, 1000)  # Tap at coordinates
+    time.sleep(1)
+    controller.tap_all(600, 1200)  # Another tap
+    
+    # Example: Swipe gesture
+    controller.swipe_all(500, 1500, 500, 500, 300)  # Swipe up
+
+BATCH OPERATIONS
+----------------
+Install apps on all phones:
+    controller.install_app_all("path/to/app.apk")
+
+Take screenshots from all phones:
+    for device in controller.devices:
+        controller.take_screenshot(device, f"screenshot_{device}.png")
+
+Execute custom ADB commands:
+    controller.execute_all("pm list packages")  # List all apps
+
+COORDINATE MAPPING
+------------------
+Different phones have different screen sizes. To handle this:
+
+    # Get screen size
+    screen = controller.get_screen_info(device_id)
+    width = screen['width']
+    height = screen['height']
+    
+    # Use percentages instead of fixed coordinates
+    x = int(width * 0.5)  # 50% of width
+    y = int(height * 0.5)  # 50% of height
+
+SCHEDULED TASKS
+---------------
+Use Windows Task Scheduler or Python's schedule library:
+
+    import schedule
+    import time
+    
+    def daily_task():
+        controller = PhoneController()
+        controller.press_key_all("KEYCODE_HOME")
+    
+    schedule.every().day.at("09:00").do(daily_task)
+    
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+
+================================================================================
+8. COMMON COMMANDS REFERENCE
+================================================================================
+
+ADB COMMANDS
+------------
+List all devices:
+    adb devices
+
+Connect device via WiFi:
+    adb connect IP_ADDRESS:5555
+
+Disconnect device:
+    adb disconnect IP_ADDRESS:5555
+
+Execute command on device:
+    adb -s DEVICE shell COMMAND
+
+Get device IP:
+    adb -s DEVICE shell ip addr show wlan0
+
+SCRCPY COMMANDS
+---------------
+Basic mirroring:
+    scrcpy -s DEVICE_IP:5555
+
+With options:
+    scrcpy -s DEVICE_IP:5555 --window-title "My Phone" --stay-awake --turn-screen-off
+
+Record screen:
+    scrcpy -s DEVICE_IP:5555 --record video.mp4
+
+ANDROID KEYCODES
+----------------
+Common keycodes for input keyevent:
+    KEYCODE_HOME          - Home button
+    KEYCODE_BACK          - Back button
+    KEYCODE_MENU          - Menu button
+    KEYCODE_ENTER         - Enter key
+    KEYCODE_DEL           - Delete/Backspace
+    KEYCODE_VOLUME_UP     - Volume up
+    KEYCODE_VOLUME_DOWN   - Volume down
+    KEYCODE_POWER         - Power button
+    KEYCODE_WAKEUP        - Wake up device
+    KEYCODE_APP_SWITCH    - Recent apps
+
+Full list: https://developer.android.com/reference/android/view/KeyEvent
+
+PYTHON SCRIPT COMMANDS
+----------------------
+Run WiFi setup:
+    py wifi_connection.py
+
+Run main system:
+    py main.py
+
+Run input mirroring:
+    py input_mirror_auto.py MASTER SLAVES
+
+Run batch script:
+    scrcpy_mirror.bat MASTER SLAVES
+
+================================================================================
+QUICK START CHECKLIST
+================================================================================
+
+□ Install ADB and add to PATH
+□ Install scrcpy and add to PATH
+□ Install Python 3.7+
+□ Enable USB Debugging on all phones
+□ Connect all phones via USB
+□ Run: py wifi_connection.py
+□ Verify: adb devices (should show WiFi IPs)
+□ Disconnect USB cables
+□ Run: py main.py
+□ Select master device
+□ Control master phone - actions mirror to all slaves!
+
+================================================================================
+SUPPORT & TIPS
+================================================================================
+
+- Keep phones charged (WiFi uses battery)
+- Use same WiFi network for all devices
+- Keep phones unlocked during automation
+- Test with 2-3 phones first before using all 10
+- Save device IPs for quick reconnection
+- Use --turn-screen-off in scrcpy to save phone battery
+- Monitor slave devices occasionally to verify mirroring
+
+For issues or questions, check:
+- ADB documentation: https://developer.android.com/studio/command-line/adb
+- scrcpy documentation: https://github.com/Genymobile/scrcpy
+- Python ADB libraries documentation
+
+================================================================================
+END OF GUIDE
+================================================================================
+
+

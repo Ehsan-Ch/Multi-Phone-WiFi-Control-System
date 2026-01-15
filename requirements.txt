@@ -1,0 +1,4 @@
+# Required for automatic input mirroring
+pynput==1.7.6
+pywin32==306
+
