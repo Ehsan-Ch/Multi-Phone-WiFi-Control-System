@@ -14,16 +14,18 @@ class WiFiADBManager:
         """Get devices connected via USB (for initial WiFi setup)"""
         try:
             result = subprocess.run(
-                ['adb', 'devices'],
+                ['adb', 'devices', '-l'],
                 capture_output=True,
                 text=True,
                 check=True
             )
             devices = []
             for line in result.stdout.strip().split('\n')[1:]:
-                if line.strip() and '\tdevice' in line:
-                    device_id = line.split('\t')[0]
-                    devices.append(device_id)
+                fields = line.split()
+                if len(fields) >= 2 and fields[1] == 'device' and any(
+                    field.startswith('usb:') for field in fields[2:]
+                ):
+                    devices.append(fields[0])
             return devices
         except Exception as e:
             print(f"Error getting USB devices: {e}")
@@ -173,5 +175,6 @@ def setup_wifi_connection():
 
 if __name__ == "__main__":
     setup_wifi_connection()
+
 
 

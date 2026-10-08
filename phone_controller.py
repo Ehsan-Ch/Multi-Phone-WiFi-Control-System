@@ -1,4 +1,5 @@
 import subprocess
+import shlex
 import json
 import time
 from typing import List, Dict, Optional
@@ -11,6 +12,7 @@ class PhoneController:
     
     def scan_devices(self):
         """Scan for all connected Android devices"""
+        self.devices = []
         try:
             result = subprocess.run(
                 ['adb', 'devices'],
@@ -101,14 +103,13 @@ class PhoneController:
     
     def input_text(self, device_id: str, text: str):
         """Input text (requires keyboard to be open)"""
-        # Escape special characters
-        text = text.replace(' ', '%s').replace('&', '\\&')
-        return self.execute_command(device_id, f'input text "{text}"')
+        encoded = shlex.quote(text.replace(" ", "%s"))
+        return self.execute_command(device_id, f"input text {encoded}")
     
     def input_text_all(self, text: str):
         """Input text on all devices"""
-        text = text.replace(' ', '%s').replace('&', '\\&')
-        return self.execute_all(f'input text "{text}"')
+        encoded = shlex.quote(text.replace(" ", "%s"))
+        return self.execute_all(f"input text {encoded}")
     
     def press_key(self, device_id: str, keycode: str):
         """Press a key (HOME, BACK, MENU, etc.)"""
@@ -174,7 +175,7 @@ class PhoneController:
             )
             return {
                 'device_id': device_id,
-                'success': 'Success' in result.stdout,
+                'success': result.returncode == 0 and 'Success' in result.stdout,
                 'output': result.stdout
             }
         except Exception as e:
@@ -187,6 +188,8 @@ class PhoneController:
     def install_app_all(self, apk_path: str) -> List[Dict]:
         """Install APK on all devices"""
         results = []
+        if not self.devices:
+            return results
         with ThreadPoolExecutor(max_workers=len(self.devices)) as executor:
             futures = {
                 executor.submit(self.install_app, device_id, apk_path): device_id
@@ -238,5 +241,6 @@ class PhoneController:
             if result['success']:
                 info[key] = result['output'].strip()
         return info
+
 
 

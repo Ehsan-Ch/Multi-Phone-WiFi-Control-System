@@ -69,3 +69,16 @@ For the intended Windows/Android setup, verify device connections, scrcpy window
 ## Technical focus
 
 Python subprocess integration, concurrent command dispatch, Windows input handling, screen-coordinate translation and hardware/software debugging.
+
+
+## Automated regression checks
+
+```powershell
+py -m unittest discover -s tests -v
+```
+
+Five hardware-free tests cover literal text quoting for the Android shell,
+empty-device handling, stale-device cleanup after a failed scan, installation
+exit status and USB-only discovery. USB setup now uses `adb devices -l` and
+requires a USB transport marker, excluding existing wireless transports.
+These mocked checks do not replace end-to-end tests with Windows and phones.
